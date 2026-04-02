@@ -1,36 +1,17 @@
-"""
-과제 01: 간단한 이미지 분류기 구현
-- MNIST 손글씨 숫자 이미지(28x28 흑백)를 이용한 분류기
-- Sequential 모델과 Dense 레이어를 활용한 간단한 신경망
-"""
-
-# 배열 연산 및 수학 함수를 위한 NumPy 라이브러리를 불러옵니다.
 import numpy as np
-# 그래프와 이미지 시각화를 위한 Matplotlib 라이브러리를 불러옵니다.
 import matplotlib.pyplot as plt
-# 파일 경로 조작을 위한 os 모듈을 불러옵니다.
 import os
 
-# TensorFlow Keras에서 MNIST 데이터셋을 불러오는 모듈을 임포트합니다.
 from tensorflow.keras.datasets import mnist
-# 레이어를 순차적으로 쌓아 모델을 구성하는 Sequential 클래스를 임포트합니다.
 from tensorflow.keras.models import Sequential
-# 완전연결층(Dense)과 다차원 텐서를 1차원으로 펼치는 Flatten 레이어를 임포트합니다.
 from tensorflow.keras.layers import Dense, Flatten
-# 정수 레이블을 원-핫 인코딩 벡터로 변환하는 유틸리티 함수를 임포트합니다.
 from tensorflow.keras.utils import to_categorical
 
-# ──────────────────────────────────────────────
-# 결과 저장 경로 설정
-# ──────────────────────────────────────────────
 # 현재 스크립트 파일이 위치한 디렉터리 경로를 기준으로 result_images 폴더 경로를 생성합니다.
 RESULT_DIR = os.path.join(os.path.dirname(__file__), "result_images")
 # result_images 폴더가 없으면 새로 생성하고, 이미 존재하면 에러 없이 넘어갑니다.
 os.makedirs(RESULT_DIR, exist_ok=True)
 
-# ──────────────────────────────────────────────
-# 1. MNIST 데이터셋 로드
-# ──────────────────────────────────────────────
 # Keras가 제공하는 MNIST 데이터셋을 자동으로 다운로드하고 훈련/테스트 세트로 분할하여 로드합니다.
 # x_train: 훈련 이미지(60,000장, 28x28), y_train: 훈련 레이블(0~9)
 # x_test: 테스트 이미지(10,000장, 28x28), y_test: 테스트 레이블(0~9)
@@ -47,11 +28,6 @@ print(f"  테스트 데이터: {x_test.shape}, 레이블: {y_test.shape}")
 # 구분선을 출력합니다.
 print("=" * 50)
 
-# ──────────────────────────────────────────────
-# 2. 데이터 전처리
-#    - 픽셀 값을 0~1 범위로 정규화
-#    - 레이블을 원-핫 인코딩
-# ──────────────────────────────────────────────
 # 훈련 이미지의 픽셀 값(0~255)을 float32로 변환한 뒤, 255로 나누어 0~1 범위로 정규화합니다.
 # 정규화하면 학습 시 그라디언트가 안정되어 모델의 수렴 속도가 빨라집니다.
 x_train = x_train.astype("float32") / 255.0
@@ -85,13 +61,6 @@ plt.close()
 # 저장 완료 메시지를 터미널에 출력합니다.
 print("[저장] 01_mnist_samples.png")
 
-# ──────────────────────────────────────────────
-# 3. 간단한 신경망 모델 구축 (Sequential + Dense)
-#    - Flatten: 28x28 → 784
-#    - Dense 128 (ReLU)
-#    - Dense 64  (ReLU)
-#    - Dense 10  (Softmax, 출력)
-# ──────────────────────────────────────────────
 # Sequential 모델을 생성하고, 리스트로 레이어를 순서대로 전달합니다.
 model = Sequential([
     # Flatten: 28x28 크기의 2D 이미지를 784(=28*28)차원의 1D 벡터로 변환합니다.
@@ -121,9 +90,6 @@ model.compile(
 # 모델의 구조(레이어 이름, 출력 shape, 파라미터 수)를 요약하여 터미널에 출력합니다.
 model.summary()
 
-# ──────────────────────────────────────────────
-# 4. 모델 훈련
-# ──────────────────────────────────────────────
 # 모델을 훈련 데이터로 학습시킵니다.
 history = model.fit(
     # 훈련 이미지와 원-핫 인코딩된 레이블을 전달합니다.
@@ -138,9 +104,6 @@ history = model.fit(
     verbose=1,
 )
 
-# ──────────────────────────────────────────────
-# 5. 모델 평가
-# ──────────────────────────────────────────────
 # 테스트 데이터에 대한 손실(loss)과 정확도(accuracy)를 계산합니다.
 # verbose=0으로 설정하여 평가 중 출력을 숨깁니다.
 test_loss, test_acc = model.evaluate(x_test, y_test_cat, verbose=0)
@@ -148,10 +111,6 @@ test_loss, test_acc = model.evaluate(x_test, y_test_cat, verbose=0)
 print(f"\n테스트 정확도: {test_acc:.4f}")
 # 테스트 손실을 소수점 4자리까지 출력합니다.
 print(f"테스트 손실:   {test_loss:.4f}")
-
-# ──────────────────────────────────────────────
-# 6. 결과 시각화
-# ──────────────────────────────────────────────
 
 # (a) 학습 곡선 (정확도 & 손실)
 # 1행 2열의 서브플롯을 포함하는 figure를 생성합니다.

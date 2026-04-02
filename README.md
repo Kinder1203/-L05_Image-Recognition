@@ -61,39 +61,21 @@ model = Sequential([
 
 ### 3. 전체 코드
 ```python
-"""
-과제 01: 간단한 이미지 분류기 구현
-- MNIST 손글씨 숫자 이미지(28x28 흑백)를 이용한 분류기
-- Sequential 모델과 Dense 레이어를 활용한 간단한 신경망
-"""
 
-# 배열 연산 및 수학 함수를 위한 NumPy 라이브러리를 불러옵니다.
 import numpy as np
-# 그래프와 이미지 시각화를 위한 Matplotlib 라이브러리를 불러옵니다.
 import matplotlib.pyplot as plt
-# 파일 경로 조작을 위한 os 모듈을 불러옵니다.
 import os
 
-# TensorFlow Keras에서 MNIST 데이터셋을 불러오는 모듈을 임포트합니다.
 from tensorflow.keras.datasets import mnist
-# 레이어를 순차적으로 쌓아 모델을 구성하는 Sequential 클래스를 임포트합니다.
 from tensorflow.keras.models import Sequential
-# 완전연결층(Dense)과 다차원 텐서를 1차원으로 펼치는 Flatten 레이어를 임포트합니다.
 from tensorflow.keras.layers import Dense, Flatten
-# 정수 레이블을 원-핫 인코딩 벡터로 변환하는 유틸리티 함수를 임포트합니다.
 from tensorflow.keras.utils import to_categorical
 
-# ──────────────────────────────────────────────
-# 결과 저장 경로 설정
-# ──────────────────────────────────────────────
 # 현재 스크립트 파일이 위치한 디렉터리 경로를 기준으로 result_images 폴더 경로를 생성합니다.
 RESULT_DIR = os.path.join(os.path.dirname(__file__), "result_images")
 # result_images 폴더가 없으면 새로 생성하고, 이미 존재하면 에러 없이 넘어갑니다.
 os.makedirs(RESULT_DIR, exist_ok=True)
 
-# ──────────────────────────────────────────────
-# 1. MNIST 데이터셋 로드
-# ──────────────────────────────────────────────
 # Keras가 제공하는 MNIST 데이터셋을 자동으로 다운로드하고 훈련/테스트 세트로 분할하여 로드합니다.
 # x_train: 훈련 이미지(60,000장, 28x28), y_train: 훈련 레이블(0~9)
 # x_test: 테스트 이미지(10,000장, 28x28), y_test: 테스트 레이블(0~9)
@@ -110,11 +92,6 @@ print(f"  테스트 데이터: {x_test.shape}, 레이블: {y_test.shape}")
 # 구분선을 출력합니다.
 print("=" * 50)
 
-# ──────────────────────────────────────────────
-# 2. 데이터 전처리
-#    - 픽셀 값을 0~1 범위로 정규화
-#    - 레이블을 원-핫 인코딩
-# ──────────────────────────────────────────────
 # 훈련 이미지의 픽셀 값(0~255)을 float32로 변환한 뒤, 255로 나누어 0~1 범위로 정규화합니다.
 # 정규화하면 학습 시 그라디언트가 안정되어 모델의 수렴 속도가 빨라집니다.
 x_train = x_train.astype("float32") / 255.0
@@ -148,13 +125,6 @@ plt.close()
 # 저장 완료 메시지를 터미널에 출력합니다.
 print("[저장] 01_mnist_samples.png")
 
-# ──────────────────────────────────────────────
-# 3. 간단한 신경망 모델 구축 (Sequential + Dense)
-#    - Flatten: 28x28 → 784
-#    - Dense 128 (ReLU)
-#    - Dense 64  (ReLU)
-#    - Dense 10  (Softmax, 출력)
-# ──────────────────────────────────────────────
 # Sequential 모델을 생성하고, 리스트로 레이어를 순서대로 전달합니다.
 model = Sequential([
     # Flatten: 28x28 크기의 2D 이미지를 784(=28*28)차원의 1D 벡터로 변환합니다.
@@ -184,9 +154,6 @@ model.compile(
 # 모델의 구조(레이어 이름, 출력 shape, 파라미터 수)를 요약하여 터미널에 출력합니다.
 model.summary()
 
-# ──────────────────────────────────────────────
-# 4. 모델 훈련
-# ──────────────────────────────────────────────
 # 모델을 훈련 데이터로 학습시킵니다.
 history = model.fit(
     # 훈련 이미지와 원-핫 인코딩된 레이블을 전달합니다.
@@ -201,9 +168,6 @@ history = model.fit(
     verbose=1,
 )
 
-# ──────────────────────────────────────────────
-# 5. 모델 평가
-# ──────────────────────────────────────────────
 # 테스트 데이터에 대한 손실(loss)과 정확도(accuracy)를 계산합니다.
 # verbose=0으로 설정하여 평가 중 출력을 숨깁니다.
 test_loss, test_acc = model.evaluate(x_test, y_test_cat, verbose=0)
@@ -211,10 +175,6 @@ test_loss, test_acc = model.evaluate(x_test, y_test_cat, verbose=0)
 print(f"\n테스트 정확도: {test_acc:.4f}")
 # 테스트 손실을 소수점 4자리까지 출력합니다.
 print(f"테스트 손실:   {test_loss:.4f}")
-
-# ──────────────────────────────────────────────
-# 6. 결과 시각화
-# ──────────────────────────────────────────────
 
 # (a) 학습 곡선 (정확도 & 손실)
 # 1행 2열의 서브플롯을 포함하는 figure를 생성합니다.
@@ -295,11 +255,9 @@ print("[저장] 01_mnist_predictions.png")
 print("\n과제 01 완료!")
 ```
 
-### 4. 중간 결과물
+### 4. 최종 결과물
 *(MNIST 데이터셋 샘플 이미지 — 28x28 크기의 손글씨 숫자 이미지 10장입니다.)*
 ![mnist_samples](result_images/01_mnist_samples.png)
-
-### 5. 최종 결과물
 
 *(학습 곡선 — 에폭에 따른 정확도(Accuracy)와 손실(Loss)의 변화를 보여줍니다.)*
 ![mnist_training_curve](result_images/01_mnist_training_curve.png)
@@ -307,7 +265,7 @@ print("\n과제 01 완료!")
 *(예측 결과 — 테스트 이미지 10장에 대한 모델의 예측값과 실제값 비교입니다. 초록색은 정확한 예측, 빨간색은 오답입니다.)*
 ![mnist_predictions](result_images/01_mnist_predictions.png)
 
-### 6. 결과 해석
+### 5. 결과 해석
 - **테스트 정확도 약 97.8%** 를 달성하여, Dense 레이어만으로 구성한 간단한 신경망으로도 MNIST 분류 성능이 매우 높음을 확인했습니다.
 - 학습 곡선에서 Train Accuracy와 Val Accuracy가 함께 상승하고, 두 곡선 사이의 간격이 크지 않아 과적합이 발생하지 않았음을 알 수 있습니다.
 - 과제 요구사항인 "간단한 신경망"의 취지에 맞게 CNN을 사용하지 않고 Flatten + Dense 구조만으로 구현했으며, 이 구조로도 97%+ 정확도가 가능함을 검증했습니다.
@@ -351,35 +309,17 @@ prediction = model.predict(dog_input)
 
 ### 3. 전체 코드
 ```python
-"""
-과제 02: CIFAR-10 데이터셋을 활용한 CNN 모델 구축
-- CIFAR-10 데이터셋으로 합성곱 신경망(CNN) 구축 및 이미지 분류
-- 테스트 이미지(dog.jpg)에 대한 예측 수행
-"""
 
-# 배열 연산 및 수학 함수를 위한 NumPy 라이브러리를 불러옵니다.
 import numpy as np
-# 그래프와 이미지 시각화를 위한 Matplotlib 라이브러리를 불러옵니다.
 import matplotlib.pyplot as plt
-# 파일 경로 조작을 위한 os 모듈을 불러옵니다.
 import os
-# 외부 이미지(dog.jpg)를 로드하고 리사이즈하기 위한 PIL 라이브러리를 불러옵니다.
 from PIL import Image
 
-# TensorFlow Keras에서 CIFAR-10 데이터셋을 불러오는 모듈을 임포트합니다.
 from tensorflow.keras.datasets import cifar10
-# 레이어를 순차적으로 쌓아 모델을 구성하는 Sequential 클래스를 임포트합니다.
 from tensorflow.keras.models import Sequential
-# CNN 구성에 필요한 레이어들을 임포트합니다.
-# Conv2D: 2D 합성곱 레이어, MaxPooling2D: 최대 풀링 레이어
-# Flatten: 다차원 텐서를 1차원으로 변환, Dense: 완전연결층, Dropout: 과적합 방지용 드롭아웃
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
-# 정수 레이블을 원-핫 인코딩 벡터로 변환하는 유틸리티 함수를 임포트합니다.
 from tensorflow.keras.utils import to_categorical
 
-# ──────────────────────────────────────────────
-# 경로 설정
-# ──────────────────────────────────────────────
 # 현재 스크립트 파일이 위치한 디렉터리 경로를 가져옵니다.
 BASE_DIR = os.path.dirname(__file__)
 # 입력 이미지(dog.jpg)가 들어있는 images 폴더의 경로를 생성합니다.
@@ -396,9 +336,6 @@ CLASS_NAMES = [
     "dog", "frog", "horse", "ship", "truck",
 ]
 
-# ──────────────────────────────────────────────
-# 1. CIFAR-10 데이터셋 로드
-# ──────────────────────────────────────────────
 # Keras가 제공하는 CIFAR-10 데이터셋을 자동으로 다운로드하고 훈련/테스트 세트로 분할합니다.
 # x_train: 훈련 이미지(50,000장, 32x32x3 컬러), y_train: 훈련 레이블(0~9)
 # x_test: 테스트 이미지(10,000장, 32x32x3 컬러), y_test: 테스트 레이블(0~9)
@@ -415,11 +352,6 @@ print(f"  테스트 데이터: {x_test.shape}, 레이블: {y_test.shape}")
 # 구분선을 출력합니다.
 print("=" * 50)
 
-# ──────────────────────────────────────────────
-# 2. 데이터 전처리
-#    - 픽셀 값을 0~1 범위로 정규화
-#    - 레이블을 원-핫 인코딩
-# ──────────────────────────────────────────────
 # 훈련 이미지의 픽셀 값(0~255)을 float32로 변환한 뒤, 255로 나누어 0~1 범위로 정규화합니다.
 # 과제 힌트: "데이터 전처리 시 픽셀 값을 0~1 범위로 정규화하면 모델의 수렴이 빨라질 수 있음"
 x_train = x_train.astype("float32") / 255.0
@@ -454,11 +386,6 @@ plt.close()
 # 저장 완료 메시지를 터미널에 출력합니다.
 print("[저장] 02_cifar10_samples.png")
 
-# ──────────────────────────────────────────────
-# 3. CNN 모델 설계
-#    - Conv2D + MaxPooling2D 블록 x 3
-#    - Flatten → Dense → Dropout → Dense(출력)
-# ──────────────────────────────────────────────
 # Sequential 모델을 생성하고, 리스트로 레이어를 순서대로 전달합니다.
 model = Sequential([
     # ── Block 1 ──
@@ -508,9 +435,6 @@ model.compile(
 # 모델의 구조(레이어 이름, 출력 shape, 파라미터 수)를 요약하여 터미널에 출력합니다.
 model.summary()
 
-# ──────────────────────────────────────────────
-# 4. 모델 훈련
-# ──────────────────────────────────────────────
 # 모델을 훈련 데이터로 학습시킵니다.
 history = model.fit(
     # 훈련 이미지와 원-핫 인코딩된 레이블을 전달합니다.
@@ -525,9 +449,6 @@ history = model.fit(
     verbose=1,
 )
 
-# ──────────────────────────────────────────────
-# 5. 모델 성능 평가
-# ──────────────────────────────────────────────
 # 테스트 데이터에 대한 손실(loss)과 정확도(accuracy)를 계산합니다.
 test_loss, test_acc = model.evaluate(x_test, y_test_cat, verbose=0)
 # 테스트 정확도를 소수점 4자리까지 출력합니다.
@@ -535,9 +456,6 @@ print(f"\n테스트 정확도: {test_acc:.4f}")
 # 테스트 손실을 소수점 4자리까지 출력합니다.
 print(f"테스트 손실:   {test_loss:.4f}")
 
-# ──────────────────────────────────────────────
-# 6. 학습 곡선 시각화
-# ──────────────────────────────────────────────
 # 1행 2열의 서브플롯을 포함하는 figure를 생성합니다.
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
@@ -582,9 +500,6 @@ plt.close()
 # 저장 완료 메시지를 출력합니다.
 print("[저장] 02_cifar10_training_curve.png")
 
-# ──────────────────────────────────────────────
-# 7. 테스트 이미지(dog.jpg)에 대한 예측
-# ──────────────────────────────────────────────
 # 교수님이 제공한 테스트 이미지 dog.jpg의 전체 경로를 생성합니다.
 dog_path = os.path.join(IMAGE_DIR, "dog.jpg")
 # PIL을 사용하여 이미지를 RGB 모드로 열어옵니다.
@@ -645,9 +560,6 @@ plt.close()
 # 저장 완료 메시지를 출력합니다.
 print("[저장] 02_cifar10_dog_prediction.png")
 
-# ──────────────────────────────────────────────
-# 8. CIFAR-10 테스트셋 예측 결과 시각화
-# ──────────────────────────────────────────────
 # 테스트 이미지 앞 10장에 대한 예측 확률을 계산합니다.
 predictions = model.predict(x_test[:10])
 # 예측 결과를 시각화할 2행 5열의 서브플롯을 생성합니다.
@@ -681,11 +593,9 @@ print("[저장] 02_cifar10_predictions.png")
 print("\n과제 02 완료!")
 ```
 
-### 4. 중간 결과물
+### 4. 최종 결과물
 *(CIFAR-10 데이터셋 샘플 이미지 — 32x32 크기의 컬러 이미지 10장입니다.)*
 ![cifar10_samples](result_images/02_cifar10_samples.png)
-
-### 5. 최종 결과물
 
 *(학습 곡선 — 에폭에 따른 정확도(Accuracy)와 손실(Loss)의 변화를 보여줍니다.)*
 ![cifar10_training_curve](result_images/02_cifar10_training_curve.png)
@@ -696,7 +606,7 @@ print("\n과제 02 완료!")
 *(CIFAR-10 테스트셋 예측 결과 — 테스트 이미지 10장에 대한 예측값(P)과 실제값(T) 비교입니다.)*
 ![cifar10_predictions](result_images/02_cifar10_predictions.png)
 
-### 6. 결과 해석
+### 5. 결과 해석
 - **테스트 정확도 약 73%** 를 달성했습니다. CIFAR-10은 32x32 저해상도 컬러 이미지라서 간단한 CNN 구조로 70~75%가 정상적인 범위입니다.
 - MNIST(97%)에 비해 정확도가 낮은 이유는 CIFAR-10이 컬러 이미지이고 클래스 간 시각적 유사성(예: cat과 dog)이 높기 때문입니다.
 - **dog.jpg 예측**: 모델이 교수님이 제공한 테스트 이미지를 성공적으로 "dog"으로 분류했으며, 높은 확률로 정확한 예측을 수행했습니다.
