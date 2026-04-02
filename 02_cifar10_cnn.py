@@ -1,22 +1,15 @@
-# 배열 연산 및 수학 함수를 위한 NumPy 라이브러리를 불러옵니다.
 import numpy as np
-# 그래프와 이미지 시각화를 위한 Matplotlib 라이브러리를 불러옵니다.
 import matplotlib.pyplot as plt
-# 파일 경로 조작을 위한 os 모듈을 불러옵니다.
 import os
-# 외부 이미지(dog.jpg)를 로드하고 리사이즈하기 위한 PIL 라이브러리를 불러옵니다.
 from PIL import Image
+import tensorflow as tf
 
-# TensorFlow Keras에서 CIFAR-10 데이터셋을 불러오는 모듈을 임포트합니다.
 from tensorflow.keras.datasets import cifar10
-# 레이어를 순차적으로 쌓아 모델을 구성하는 Sequential 클래스를 임포트합니다.
 from tensorflow.keras.models import Sequential
-# CNN 구성에 필요한 레이어들을 임포트합니다.
-# Conv2D: 2D 합성곱 레이어, MaxPooling2D: 최대 풀링 레이어
-# Flatten: 다차원 텐서를 1차원으로 변환, Dense: 완전연결층, Dropout: 과적합 방지용 드롭아웃
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
-# 정수 레이블을 원-핫 인코딩 벡터로 변환하는 유틸리티 함수를 임포트합니다.
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 # 현재 스크립트 파일이 위치한 디렉터리 경로를 가져옵니다.
 BASE_DIR = os.path.dirname(__file__)
@@ -84,38 +77,55 @@ plt.close()
 # 저장 완료 메시지를 터미널에 출력합니다.
 print("[저장] 02_cifar10_samples.png")
 
-# Sequential 모델을 생성하고, 리스트로 레이어를 순서대로 전달합니다.
+# Sequential 모델을 생성하고, VGG 네트워크 스타일로 레이어를 구성합니다.
+# VGG의 핵심 아이디어: 3x3 필터를 2개씩 연속 적용하면 5x5 필터 1개와 같은 수용 영역(receptive field)을
+# 가지면서도, 파라미터 수는 줄고 비선형성(ReLU)은 2배로 늘어나 더 강력한 특징을 학습합니다.
 model = Sequential([
-    # ── Block 1 ──
-    # 첫 번째 합성곱 레이어: 32개의 3x3 필터로 이미지에서 저수준 특징(엣지, 색상변화 등)을 추출합니다.
-    # padding="same"으로 입출력 크기를 동일하게 유지하고, ReLU 활성화로 비선형성을 부여합니다.
-    # input_shape=(32, 32, 3)은 CIFAR-10 이미지 크기(가로 32, 세로 32, RGB 3채널)를 명시합니다.
-    Conv2D(32, (3, 3), activation="relu", padding="same", input_shape=(32, 32, 3)),
-    # 2x2 풀링 윈도우로 특징 맵의 크기를 절반(32x32 → 16x16)으로 줄입니다.
-    # 연산량을 감소시키고, 위치 변화에 대한 불변성을 확보합니다.
-    MaxPooling2D((2, 2)),
-
-    # ── Block 2 ──
-    # 두 번째 합성곱 레이어: 64개의 3x3 필터로 중간 수준의 특징(질감, 패턴 등)을 추출합니다.
-    # 필터 수를 32→64로 2배 늘려 더 복잡한 특징을 학습할 수 있게 합니다.
+    # ── Block 1: 저수준 특징 추출 (엣지, 색상 변화) ──
+    # 첫 번째 합성곱: 64개의 3x3 필터, padding="same"으로 크기 유지, ReLU 활성화
+    Conv2D(64, (3, 3), activation="relu", padding="same", input_shape=(32, 32, 3)),
+    # 두 번째 합성곱: 같은 설정으로 한 번 더 적용하여 특징 표현력을 강화합니다.
     Conv2D(64, (3, 3), activation="relu", padding="same"),
-    # 특징 맵 크기를 다시 절반(16x16 → 8x8)으로 줄입니다.
+    # 배치 정규화: 각 배치의 출력을 정규화하여 학습을 안정화하고 수렴 속도를 높입니다.
+    BatchNormalization(),
+    # 2x2 맥스 풀링: 특징 맵 크기를 절반(32x32 → 16x16)으로 줄입니다.
     MaxPooling2D((2, 2)),
+    # 드롭아웃 25%: 블록 수준에서 과적합을 방지합니다.
+    Dropout(0.25),
 
-    # ── Block 3 ──
-    # 세 번째 합성곱 레이어: 128개의 3x3 필터로 고수준 특징(물체의 형태, 구조 등)을 추출합니다.
+    # ── Block 2: 중간 수준 특징 추출 (질감, 패턴) ──
+    # 128개의 3x3 필터로 더 복잡한 특징을 추출합니다.
     Conv2D(128, (3, 3), activation="relu", padding="same"),
+    # 같은 설정의 합성곱을 한 번 더 적용합니다.
+    Conv2D(128, (3, 3), activation="relu", padding="same"),
+    # 배치 정규화로 학습을 안정화합니다.
+    BatchNormalization(),
+    # 특징 맵 크기를 절반(16x16 → 8x8)으로 줄입니다.
+    MaxPooling2D((2, 2)),
+    # 드롭아웃 25%로 과적합을 방지합니다.
+    Dropout(0.25),
+
+    # ── Block 3: 고수준 특징 추출 (물체의 형태, 구조) ──
+    # 256개의 3x3 필터로 고수준 의미 특징을 추출합니다.
+    Conv2D(256, (3, 3), activation="relu", padding="same"),
+    # 같은 설정의 합성곱을 한 번 더 적용합니다.
+    Conv2D(256, (3, 3), activation="relu", padding="same"),
+    # 배치 정규화로 학습을 안정화합니다.
+    BatchNormalization(),
     # 특징 맵 크기를 절반(8x8 → 4x4)으로 줄입니다.
     MaxPooling2D((2, 2)),
+    # 드롭아웃 25%로 과적합을 방지합니다.
+    Dropout(0.25),
 
     # ── 분류기 (Classifier) ──
-    # 3D 특징 맵(4x4x128=2048)을 1D 벡터로 평탄화하여 Dense 레이어에 전달할 수 있게 합니다.
+    # 3D 특징 맵(4x4x256=4096)을 1D 벡터로 평탄화합니다.
     Flatten(),
-    # 128개의 뉴런을 가진 완전연결층으로 고수준 특징을 조합하여 분류에 필요한 패턴을 학습합니다.
-    Dense(128, activation="relu"),
-    # 학습 시 뉴런의 30%를 랜덤으로 비활성화하여 과적합(Overfitting)을 방지합니다.
-    # 특정 뉴런에 대한 의존도를 줄여 모델의 일반화 성능을 향상시킵니다.
-    Dropout(0.3),
+    # 256개의 뉴런을 가진 완전연결층으로 고수준 특징을 조합합니다.
+    Dense(256, activation="relu"),
+    # 배치 정규화로 분류기 학습도 안정화합니다.
+    BatchNormalization(),
+    # 분류기에서는 50%의 강한 드롭아웃을 적용하여 과적합을 억제합니다.
+    Dropout(0.5),
     # 출력층: 10개의 뉴런(CIFAR-10의 10개 클래스에 대응), Softmax로 확률 분포를 출력합니다.
     Dense(10, activation="softmax"),
 ])
@@ -133,16 +143,55 @@ model.compile(
 # 모델의 구조(레이어 이름, 출력 shape, 파라미터 수)를 요약하여 터미널에 출력합니다.
 model.summary()
 
-# 모델을 훈련 데이터로 학습시킵니다.
+# 훈련 시 이미지를 실시간으로 변형하여 모델이 다양한 패턴을 학습하게 합니다.
+# 같은 이미지를 단순 반복하면 과적합되지만, 매번 변형하면 일반화 성능이 향상됩니다.
+datagen = ImageDataGenerator(
+    # 이미지를 좌우로 뒤집어 데이터 다양성을 2배로 늘립니다.
+    horizontal_flip=True,
+    # 이미지를 좌우로 최대 10%까지 이동시켜 위치 변화에 강건하게 만듭니다.
+    width_shift_range=0.1,
+    # 이미지를 상하로 최대 10%까지 이동시킵니다.
+    height_shift_range=0.1,
+    # 이미지를 최대 15도까지 회전시켜 각도 변화에 강건하게 만듭니다.
+    rotation_range=15,
+    # 이미지를 최대 10%까지 확대/축소하여 스케일 변화에 강건하게 만듭니다.
+    zoom_range=0.1,
+)
+
+# 검증 데이터를 수동으로 분리합니다. (데이터 증강 사용 시 validation_split 대신 직접 분리)
+# 훈련 데이터의 앞쪽 80%(40,000장)를 학습용으로 사용합니다.
+val_split = int(len(x_train) * 0.8)
+# 검증용 이미지와 레이블을 분리합니다.
+x_val, y_val_cat = x_train[val_split:], y_train_cat[val_split:]
+# 학습용 이미지와 레이블을 분리합니다.
+x_train_aug, y_train_aug = x_train[:val_split], y_train_cat[:val_split]
+
+# 학습률 스케줄링 콜백을 설정합니다.
+# 검증 손실(val_loss)이 5에폭 연속 개선되지 않으면 학습률을 절반으로 줄입니다.
+# 학습 후반에 미세 조정(fine-tuning) 효과를 주어 정확도를 추가로 끌어올립니다.
+lr_scheduler = ReduceLROnPlateau(
+    # 검증 손실을 기준으로 판단합니다.
+    monitor="val_loss",
+    # 개선이 없으면 학습률을 현재의 50%로 줄입니다.
+    factor=0.5,
+    # 5에폭 동안 개선이 없을 때 학습률을 줄입니다.
+    patience=5,
+    # 학습률이 줄어질 때 메시지를 출력합니다.
+    verbose=1,
+    # 학습률의 하한선을 설정합니다. (너무 작아지면 학습이 멈추므로)
+    min_lr=1e-6,
+)
+
+# 모델을 증강된 훈련 데이터로 학습시킵니다.
 history = model.fit(
-    # 훈련 이미지와 원-핫 인코딩된 레이블을 전달합니다.
-    x_train, y_train_cat,
-    # 전체 훈련 데이터를 20번 반복하여 학습합니다. (CIFAR-10은 MNIST보다 복잡하므로 에폭 수를 늘림)
-    epochs=20,
-    # 한 번에 64장의 이미지를 묶어서 가중치를 업데이트합니다. (미니배치 학습)
-    batch_size=64,
-    # 훈련 데이터의 20%를 검증 데이터로 분리하여 과적합 여부를 모니터링합니다.
-    validation_split=0.2,
+    # datagen.flow()는 매 배치마다 이미지를 실시간으로 변형하여 제공합니다.
+    datagen.flow(x_train_aug, y_train_aug, batch_size=64),
+    # 100에폭 반복 학습합니다. (GPU 사용 시 빠르게 처리됩니다)
+    epochs=100,
+    # 분리해둔 검증 데이터로 에폭마다 과적합 여부를 모니터링합니다.
+    validation_data=(x_val, y_val_cat),
+    # 학습률 스케줄링 콜백을 적용합니다.
+    callbacks=[lr_scheduler],
     # 학습 진행 상황을 에폭마다 프로그레스 바로 표시합니다.
     verbose=1,
 )
